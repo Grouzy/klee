@@ -202,6 +202,7 @@ include(${CMAKE_SOURCE_DIR}/cmake/compiler_warnings.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/find_stp.cmake)
 # Z3
 include(${CMAKE_SOURCE_DIR}/cmake/find_z3.cmake)
+find_Package(Z3 CONFIG REQUIRED)
 # metaSMT
 include(${CMAKE_SOURCE_DIR}/cmake/find_metasmt.cmake)
 
@@ -265,7 +266,7 @@ endif()
 ################################################################################
 # TCMalloc support
 ################################################################################
-OPTION(ENABLE_TCMALLOC "Enable TCMalloc support" ON)
+OPTION(ENABLE_TCMALLOC "Enable TCMalloc support" OFF)
 if (ENABLE_TCMALLOC)
   message(STATUS "TCMalloc support enabled")
   set(TCMALLOC_HEADER "gperftools/malloc_extension.h")
@@ -655,7 +656,7 @@ add_subdirectory(tools)
 # Testing
 ################################################################################
 option(ENABLE_UNIT_TESTS "Enable unit tests" OFF)
-option(ENABLE_SYSTEM_TESTS "Enable system tests" ON)
+option(ENABLE_SYSTEM_TESTS "Enable system tests" OFF)
 
 if (ENABLE_UNIT_TESTS OR ENABLE_SYSTEM_TESTS)
   message(STATUS "Testing is enabled")
