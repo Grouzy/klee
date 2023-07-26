@@ -288,7 +288,7 @@ Function *ExternalDispatcherImpl::createDispatcher(KCallable *target,
       PointerType::getUnqual(PointerType::getUnqual(Type::getInt64Ty(ctx))),
       "argsp");
   auto argI64s = Builder.CreateLoad(
-      argI64sp->getType()->getPointerElementType(), argI64sp, "args");
+      PointerType::getUnqual(Type::getInt64Ty(ctx)), argI64sp, "args");
 
   // Get the target function type.
   FunctionType *FTy = target->getFunctionType();
@@ -307,12 +307,12 @@ Function *ExternalDispatcherImpl::createDispatcher(KCallable *target,
       idx++;
 
     auto argI64p =
-        Builder.CreateGEP(argI64s->getType()->getPointerElementType(), argI64s,
+        Builder.CreateGEP(Type::getInt64Ty(ctx), argI64s,
                           ConstantInt::get(Type::getInt32Ty(ctx), idx));
 
     auto argp = Builder.CreateBitCast(argI64p, PointerType::getUnqual(argTy));
     args[i] =
-        Builder.CreateLoad(argp->getType()->getPointerElementType(), argp);
+        Builder.CreateLoad(argTy, argp);
 
     unsigned argSize = argTy->getPrimitiveSizeInBits();
     idx += ((!!argSize ? argSize : 64) + 63) / 64;

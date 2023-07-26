@@ -72,7 +72,7 @@ void LowerSwitchPass::switchConvert(CaseItr begin, CaseItr end,
   for (CaseItr it = begin; it < end; ++it) {
     BasicBlock *newBlock = BasicBlock::Create(F->getContext(), "NodeBlock");
     Function::iterator FI = origBlock->getIterator();
-    F->getBasicBlockList().insert(++FI, newBlock);
+    F->insert(++FI, newBlock);
     Builder.SetInsertPoint(newBlock);
     auto cmpValue = Builder.CreateICmpEQ(value, it->value, "case.cmp");
     Builder.CreateCondBr(cmpValue, it->block, curHead);
@@ -109,7 +109,7 @@ void LowerSwitchPass::processSwitchInst(SwitchInst *SI) {
   BasicBlock* newDefault = BasicBlock::Create(F->getContext(), "newDefault");
   llvm::IRBuilder<> Builder(newDefault);
 
-  F->getBasicBlockList().insert(defaultBlock->getIterator(), newDefault);
+  F->insert(defaultBlock->getIterator(), newDefault);
   Builder.CreateBr(defaultBlock);
 
   // If there is an entry in any PHI nodes for the default edge, make sure
@@ -136,7 +136,7 @@ void LowerSwitchPass::processSwitchInst(SwitchInst *SI) {
   switchConvert(cases.begin(), cases.end(), switchValue, origBlock, newDefault);
 
   // We are now done with the switch instruction, so delete it
-  origBlock->getInstList().erase(SI);
+  SI->eraseFromParent();
 }
 
 }

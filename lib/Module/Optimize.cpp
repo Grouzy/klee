@@ -37,6 +37,7 @@ DISABLE_WARNING_DEPRECATED_DECLARATIONS
 #include "llvm/Transforms/IPO/FunctionAttrs.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Scalar/GVN.h"
+#include <llvm/Transforms/Scalar/SimpleLoopUnswitch.h>
 #include "llvm/Transforms/Utils.h"
 DISABLE_WARNING_POP
 
@@ -111,13 +112,17 @@ static void AddStandardCompilePasses(legacy::PassManager &PM) {
   addPass(PM, createInstructionCombiningPass()); // Clean up after IPCP & DAE
   addPass(PM, createCFGSimplificationPass());    // Clean up after IPCP & DAE
 
+#if LLVM_VERSION_MAJOR < 15
   addPass(PM, createPruneEHPass());              // Remove dead EH info
+#endif
   addPass(PM, createPostOrderFunctionAttrsLegacyPass());
   addPass(PM, createReversePostOrderFunctionAttrsPass()); // Deduce function attrs
 
   if (!DisableInline)
     addPass(PM, createFunctionInliningPass());   // Inline small functions
+#if LLVM_VERSION_MAJOR < 15
   addPass(PM, createArgumentPromotionPass());    // Scalarize uninlined fn args
+#endif
 
   addPass(PM, createInstructionCombiningPass()); // Cleanup for scalarrepl.
   addPass(PM, createJumpThreadingPass());        // Thread jumps.
@@ -130,7 +135,11 @@ static void AddStandardCompilePasses(legacy::PassManager &PM) {
   addPass(PM, createReassociatePass());          // Reassociate expressions
   addPass(PM, createLoopRotatePass());
   addPass(PM, createLICMPass());                 // Hoist loop invariants
+#if LLVM_VERSION_MAJOR < 15
   addPass(PM, createLoopUnswitchPass());         // Unswitch loops.
+#else
+  addPass(PM, createSimpleLoopUnswitchLegacyPass());
+#endif
   // FIXME : Removing instcombine causes nestedloop regression.
   addPass(PM, createInstructionCombiningPass());
   addPass(PM, createIndVarSimplifyPass());       // Canonicalize indvars
@@ -208,13 +217,17 @@ void Optimize(Module *M, llvm::ArrayRef<const char *> preservedFunctions) {
   if (!DisableInline)
     addPass(Passes, createFunctionInliningPass()); // Inline small functions
 
+#if LLVM_VERSION_MAJOR < 15
   addPass(Passes, createPruneEHPass());         // Remove dead EH info
+#endif
   addPass(Passes, createGlobalOptimizerPass()); // Optimize globals again.
   addPass(Passes, createGlobalDCEPass());       // Remove dead functions
 
   // If we didn't decide to inline a function, check to see if we can
   // transform it to pass arguments by value instead of by reference.
+#if LLVM_VERSION_MAJOR < 15
   addPass(Passes, createArgumentPromotionPass());
+#endif
 
   // The IPO passes may leave cruft around.  Clean up after them.
   addPass(Passes, createInstructionCombiningPass());

@@ -101,7 +101,7 @@ bool IntrinsicCleanerPass::runOnBasicBlock(BasicBlock &b, Module &M) {
           auto castedSrc =
               Builder.CreatePointerCast(src, i8pp, "vacopy.cast.src");
           auto load =
-              Builder.CreateLoad(castedSrc->getType()->getPointerElementType(),
+              Builder.CreateLoad(PointerType::getUnqual(Type::getInt8Ty(ctx)),
                                  castedSrc, "vacopy.read");
           Builder.CreateStore(load, castedDst, false /* isVolatile */);
         } else {
@@ -110,8 +110,8 @@ bool IntrinsicCleanerPass::runOnBasicBlock(BasicBlock &b, Module &M) {
           auto pDst = Builder.CreatePointerCast(dst, i64p, "vacopy.cast.dst");
           auto pSrc = Builder.CreatePointerCast(src, i64p, "vacopy.cast.src");
 
-          auto pSrcType = pSrc->getType()->getPointerElementType();
-          auto pDstType = pDst->getType()->getPointerElementType();
+          auto pSrcType = Type::getInt64Ty(ctx); 
+          auto pDstType = Type::getInt64Ty(ctx);
 
           auto val = Builder.CreateLoad(pSrcType, pSrc);
           Builder.CreateStore(val, pDst, ii);
@@ -357,7 +357,11 @@ bool IntrinsicCleanerPass::runOnBasicBlock(BasicBlock &b, Module &M) {
       case Intrinsic::experimental_noalias_scope_decl:
 #endif
       case Intrinsic::floor:
+#if LLVM_VERSION_MAJOR < 16
       case Intrinsic::flt_rounds:
+#else
+      case Intrinsic::get_rounding:
+#endif
       case Intrinsic::frameaddress:
       case Intrinsic::get_dynamic_area_offset:
       case Intrinsic::invariant_end:

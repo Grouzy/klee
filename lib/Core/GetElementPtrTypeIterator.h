@@ -94,8 +94,6 @@ public:
       if (llvm::CompositeType *CT = dyn_cast<llvm::CompositeType>(CurTy)) {
         CurTy = CT->getTypeAtIndex(getOperand());
 #endif
-      } else if (CurTy->isPointerTy()) {
-        CurTy = CurTy->getPointerElementType();
       } else {
         CurTy = 0;
       }
@@ -144,13 +142,13 @@ public:
     return iv_type_iterator::end(IV->idx_end());
   }
 
-  inline vce_type_iterator vce_type_begin(const llvm::ConstantExpr *CE) {
-    return vce_type_iterator::begin(CE->getOperand(0)->getType(),
-                                    CE->getIndices().begin());
-  }
-  inline vce_type_iterator vce_type_end(const llvm::ConstantExpr *CE) {
-    return vce_type_iterator::end(CE->getIndices().end());
-  }
+  //inline vce_type_iterator vce_type_begin(const llvm::ConstantExpr *CE) {
+  //  return vce_type_iterator::begin(CE->getOperand(0)->getType(),
+  //                                  CE->getIndices().begin());
+  //}
+  //inline vce_type_iterator vce_type_end(const llvm::ConstantExpr *CE) {
+  //  return vce_type_iterator::end(CE->getIndices().end());
+  //}
 
   template <typename ItTy>
   inline generic_gep_type_iterator<ItTy> gep_type_begin(llvm::Type *Op0, ItTy I,
