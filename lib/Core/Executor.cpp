@@ -2456,43 +2456,7 @@ void Executor::executeInstruction(ExecutionState &state, KInstruction *ki) {
     }
 
     if (f) {
-      const FunctionType *fType = f->getFunctionType();
-      const FunctionType *fpType =
-          dyn_cast<FunctionType>(fp->getType()->getPointerElementType());
-
-      // special case the call with a bitcast case
-      if (fType != fpType) {
-        assert(fType && fpType && "unable to get function type");
-
-        // XXX check result coercion
-
-        // XXX this really needs thought and validation
-        unsigned i=0;
-        for (std::vector< ref<Expr> >::iterator
-               ai = arguments.begin(), ie = arguments.end();
-             ai != ie; ++ai) {
-          Expr::Width to, from = (*ai)->getWidth();
-            
-          if (i<fType->getNumParams()) {
-            to = getWidthForLLVMType(fType->getParamType(i));
-
-            if (from != to) {
-              // XXX need to check other param attrs ?
-              bool isSExt = cb.paramHasAttr(i, llvm::Attribute::SExt);
-              if (isSExt) {
-                arguments[i] = SExtExpr::create(arguments[i], to);
-              } else {
-                arguments[i] = ZExtExpr::create(arguments[i], to);
-              }
-            }
-          }
-            
-          i++;
-        }
-      }
-
       executeCall(state, ki, f, arguments);
-    } else {
       ref<Expr> v = eval(ki, 0, state).value;
 
       ExecutionState *free = &state;

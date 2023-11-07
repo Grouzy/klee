@@ -23,6 +23,7 @@ DISABLE_WARNING_PUSH
 DISABLE_WARNING_DEPRECATED_DECLARATIONS
 #include "llvm/Analysis/GlobalsModRef.h"
 #include "llvm/Analysis/Passes.h"
+#include "llvm/Passes/PassBuilder.h"
 #include "llvm/Analysis/LoopPass.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/DataLayout.h"
@@ -92,72 +93,58 @@ static inline void addPass(legacy::PassManager &PM, Pass *P) {
 namespace llvm {
 
 
-static void AddStandardCompilePasses(legacy::PassManager &PM) {
-  PM.add(createVerifierPass());                  // Verify that input is correct
+static void AddStandardCompilePasses(llvm::ModulePassManager &PM) {
+  PM.addPass(createVerifierPass());                  // Verify that input is correct
 
   // If the -strip-debug command line option was specified, do it.
   if (StripDebug)
-    addPass(PM, createStripSymbolsPass(true));
+    PM.addPass(createStripSymbolsPass(true));
 
-  addPass(PM, createCFGSimplificationPass());    // Clean up disgusting code
-  addPass(PM, createPromoteMemoryToRegisterPass());// Kill useless allocas
-  addPass(PM, createGlobalOptimizerPass());      // Optimize out global vars
-  addPass(PM, createGlobalDCEPass());            // Remove unused fns and globs
-#if LLVM_VERSION_CODE >= LLVM_VERSION(11, 0)
-  addPass(PM, createSCCPPass());                 // Constant prop with SCCP
-#else
-  addPass(PM, createIPConstantPropagationPass());// IP Constant Propagation
-#endif
-  addPass(PM, createDeadArgEliminationPass());   // Dead argument elimination
-  addPass(PM, createInstructionCombiningPass()); // Clean up after IPCP & DAE
-  addPass(PM, createCFGSimplificationPass());    // Clean up after IPCP & DAE
+  PM.addPass(createCFGSimplificationPass());    // Clean up disgusting code
+  PM.addPass(createPromoteMemoryToRegisterPass());// Kill useless allocas
+  PM.addPass(createGlobalOptimizerPass());      // Optimize out global vars
+  PM.addPass(createGlobalDCEPass());            // Remove unused fns and globs
+  PM.addPass(createSCCPPass());                 // Constant prop with SCCP
+  PM.addPass(createDeadArgEliminationPass());   // Dead argument elimination
+  PM.addPass(createInstructionCombiningPass()); // Clean up after IPCP & DAE
+  PM.addPass(createCFGSimplificationPass());    // Clean up after IPCP & DAE
 
-#if LLVM_VERSION_MAJOR < 15
-  addPass(PM, createPruneEHPass());              // Remove dead EH info
-#endif
-  addPass(PM, createPostOrderFunctionAttrsLegacyPass());
-  addPass(PM, createReversePostOrderFunctionAttrsPass()); // Deduce function attrs
+  PM.addPass(createPostOrderFunctionAttrsLegacyPass());
+  PM.addPass(createReversePostOrderFunctionAttrsPass()); // Deduce function attrs
 
   if (!DisableInline)
-    addPass(PM, createFunctionInliningPass());   // Inline small functions
-#if LLVM_VERSION_MAJOR < 15
-  addPass(PM, createArgumentPromotionPass());    // Scalarize uninlined fn args
-#endif
+    PM.addPass(createFunctionInliningPass());   // Inline small functions
 
-  addPass(PM, createInstructionCombiningPass()); // Cleanup for scalarrepl.
-  addPass(PM, createJumpThreadingPass());        // Thread jumps.
-  addPass(PM, createCFGSimplificationPass());    // Merge & remove BBs
-  addPass(PM, createSROAPass());                 // Break up aggregate allocas
-  addPass(PM, createInstructionCombiningPass()); // Combine silly seq's
+  PM.addPass(createInstructionCombiningPass()); // Cleanup for scalarrepl.
+  PM.addPass(createJumpThreadingPass());        // Thread jumps.
+  PM.addPass(createCFGSimplificationPass());    // Merge & remove BBs
+  PM.addPass(createSROAPass());                 // Break up aggregate allocas
+  PM.addPass(createInstructionCombiningPass()); // Combine silly seq's
 
-  addPass(PM, createTailCallEliminationPass());  // Eliminate tail calls
-  addPass(PM, createCFGSimplificationPass());    // Merge & remove BBs
-  addPass(PM, createReassociatePass());          // Reassociate expressions
-  addPass(PM, createLoopRotatePass());
-  addPass(PM, createLICMPass());                 // Hoist loop invariants
-#if LLVM_VERSION_MAJOR < 15
-  addPass(PM, createLoopUnswitchPass());         // Unswitch loops.
-#else
-  addPass(PM, createSimpleLoopUnswitchLegacyPass());
-#endif
+  PM.addPass(createTailCallEliminationPass());  // Eliminate tail calls
+  PM.addPass(createCFGSimplificationPass());    // Merge & remove BBs
+  PM.addPass(createReassociatePass());          // Reassociate expressions
+  PM.addPass(createLoopRotatePass());
+  PM.addPass(createLICMPass());                 // Hoist loop invariants
+  PM.addPass(createSimpleLoopUnswitchLegacyPass());
   // FIXME : Removing instcombine causes nestedloop regression.
-  addPass(PM, createInstructionCombiningPass());
-  addPass(PM, createIndVarSimplifyPass());       // Canonicalize indvars
-  addPass(PM, createLoopDeletionPass());         // Delete dead loops
-  addPass(PM, createLoopUnrollPass());           // Unroll small loops
-  addPass(PM, createInstructionCombiningPass()); // Clean up after the unroller
-  addPass(PM, createGVNPass());                  // Remove redundancies
-  addPass(PM, createMemCpyOptPass());            // Remove memcpy / form memset
-  addPass(PM, createSCCPPass());                 // Constant prop with SCCP
+  PM.addPass(createInstructionCombiningPass());
+  PM.addPass(createIndVarSimplifyPass());       // Canonicalize indvars
+  PM.addPass(createLoopDeletionPass());         // Delete dead loops
+  PM.addPass(createLoopUnrollPass());           // Unroll small loops
+  PM.addPass(createInstructionCombiningPass()); // Clean up after the unroller
+  PM.addPass(createGVNPass());                  // Remove redundancies
+  PM.addPass(createMemCpyOptPass());            // Remove memcpy / form memset
+  PM.addPass(createSCCPPass());                 // Constant prop with SCCP
 
   // Run instcombine after redundancy elimination to exploit opportunities
   // opened up by them.
-  addPass(PM, createInstructionCombiningPass());
+  PM.addPass(createInstructionCombiningPass());
 
-  addPass(PM, createDeadStoreEliminationPass()); // Delete dead stores
-  addPass(PM, createAggressiveDCEPass());        // Delete dead instructions
-  addPass(PM, createCFGSimplificationPass());    // Merge & remove BBs
-  addPass(PM, createStripDeadPrototypesPass());  // Get rid of dead prototypes
+  PM.addPass(createDeadStoreEliminationPass()); // Delete dead stores
+  PM.addPass(createAggressiveDCEPass());        // Delete dead instructions
+  PM.addPass(createCFGSimplificationPass());    // Merge & remove BBs
+  PM.addPass(createStripDeadPrototypesPass());  // Get rid of dead prototypes
   addPass(PM, createConstantMergePass());        // Merge dup global constants
 }
 
@@ -167,7 +154,12 @@ static void AddStandardCompilePasses(legacy::PassManager &PM) {
 void Optimize(Module *M, llvm::ArrayRef<const char *> preservedFunctions) {
 
   // Instantiate the pass manager to organize the passes.
-  legacy::PassManager Passes;
+  llvm::ModuleAnalysisManager MAM;
+
+  llvm::PassBuilder Passes;
+  Passes.registerModuleAnalyses(MAM);
+
+  llvm::ModulePassManager MPM = Passes.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O3);
 
   // If we're verifying, start off with a verification pass.
   if (VerifyEach)
@@ -217,17 +209,8 @@ void Optimize(Module *M, llvm::ArrayRef<const char *> preservedFunctions) {
   if (!DisableInline)
     addPass(Passes, createFunctionInliningPass()); // Inline small functions
 
-#if LLVM_VERSION_MAJOR < 15
-  addPass(Passes, createPruneEHPass());         // Remove dead EH info
-#endif
   addPass(Passes, createGlobalOptimizerPass()); // Optimize globals again.
   addPass(Passes, createGlobalDCEPass());       // Remove dead functions
-
-  // If we didn't decide to inline a function, check to see if we can
-  // transform it to pass arguments by value instead of by reference.
-#if LLVM_VERSION_MAJOR < 15
-  addPass(Passes, createArgumentPromotionPass());
-#endif
 
   // The IPO passes may leave cruft around.  Clean up after them.
   addPass(Passes, createInstructionCombiningPass());

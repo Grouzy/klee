@@ -135,8 +135,8 @@ bool FunctionAliasPass::runOnModule(Module &M) {
 
 const FunctionType *FunctionAliasPass::getFunctionType(const GlobalValue *gv) {
   const Type *type = gv->getType();
-  while (type->isPointerTy())
-    type = type->getPointerElementType();
+  if(type->isPointerTy())
+    assert(false, "well, fuck, now you need to figure out how to get the function type")
   return cast<FunctionType>(type);
 }
 
